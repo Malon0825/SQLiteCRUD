@@ -1,16 +1,13 @@
 package com.example.sqlitecrud.database
 
 import android.content.ContentValues
-import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import android.icu.number.IntegerWidth
-import android.widget.Toast
-import androidx.core.content.contentValuesOf
-import com.example.sqlitecrud.MainActivity
+import android.util.Log
 import com.example.sqlitecrud.model.TaskListModel
+import android.content.Context as Context1
 
-class DabaseHelper (context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
+class DabaseHelper (context: Context1) : SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
 
     companion object{
         private val DB_NAME = "task"
@@ -21,8 +18,25 @@ class DabaseHelper (context: Context) : SQLiteOpenHelper(context, DB_NAME, null,
         private val TASK_DETAILS = "taskdetails"
     }
 
+//    override fun onCreate(p0: SQLiteDatabase?) {
+//    // Drop the table if it exists
+//        val DROP_TABLE = "DROP TABLE IF EXISTS $TABLE_NAME"
+//        p0?.execSQL(DROP_TABLE)
+//    // Create a new table with the correct column name
+////        val CREATE_TABLE = "CREATE TABLE $TABLE_NAME ($ID INTEGER PRIMARY KEY, $TASK_NAME TEXT, $TASK_DETAILS TEXT)"
+////        p0?.execSQL(CREATE_TABLE)
+//    }
+//
+//    override fun onUpgrade(p0: SQLiteDatabase?, p1: Int, p2: Int)
+//    { // Call the onCreate method to recreate the table onCreate(p0) //
+//        onCreate(p0)
+//    }
+
+
+
+
     override fun onCreate(p0: SQLiteDatabase?) {
-        val CREATE_TABLE = "CREATE TABLE $TABLE_NAME ($ID INTEGER PRIMARY KEY, $TASK_NAME TEXT,T$TASK_DETAILS TEXT)"
+        val CREATE_TABLE = "CREATE TABLE $TABLE_NAME ($ID INTEGER PRIMARY KEY, $TASK_NAME TEXT, $TASK_DETAILS TEXT)"
         p0?.execSQL(CREATE_TABLE)
     }
 
@@ -35,43 +49,70 @@ class DabaseHelper (context: Context) : SQLiteOpenHelper(context, DB_NAME, null,
     fun getALlTask(): List<TaskListModel>{
         val tasklist = ArrayList<TaskListModel>()
         val db = writableDatabase
-        val selectQuery = "SELECT *FROM $TABLE_NAME"
+        val selectQuery = "SELECT * FROM $TABLE_NAME"
         val cursor = db.rawQuery(selectQuery, null)
         if (cursor != null) {
-            if (cursor.moveToFirst()){
-                do {
-                    val tasks = TaskListModel()
-                    try {
-                        tasks.id = Integer.parseInt(cursor.getString(cursor.getColumnIndexOrThrow(ID)))
-                        tasks.name = cursor.getString(cursor.getColumnIndexOrThrow(TABLE_NAME))
-                        tasks.details = cursor.getString(cursor.getColumnIndexOrThrow(TASK_DETAILS))
-                        tasklist.add(tasks)
-                    } catch (e: IllegalArgumentException) {
-
-                    }
-                }while (cursor.moveToFirst())
+            while (cursor.moveToNext()) { // use cursor.moveToNext() instead of cursor.moveToFirst()
+                val tasks = TaskListModel()
+                try {
+                    tasks.id = Integer.parseInt(cursor.getString(cursor.getColumnIndexOrThrow(ID)))
+                    tasks.name = cursor.getString(cursor.getColumnIndexOrThrow(TASK_NAME))
+                    tasks.details = cursor.getString(cursor.getColumnIndexOrThrow(TASK_DETAILS))
+                    tasklist.add(tasks)
+                } catch (e: IllegalArgumentException) {
+                    Log.e("DBHelper", e.message.toString())
+                }
             }
         }
         cursor.close()
         return tasklist
     }
 
-
-    fun addTask(task : TaskListModel): Boolean{
-        val db = this.writableDatabase
+    fun addTask(task : TaskListModel): Boolean{ val db = this.writableDatabase
         val values = ContentValues()
         values.put(TASK_NAME, task.name)
         values.put(TASK_DETAILS, task.details)
-        val _succes = db.insert(TABLE_NAME, null, values)
-        db.close()
-        return (Integer.parseInt("$_succes") != -1)
-
+        var success : Boolean = false
+        try
+        {
+            val _success = db.insertOrThrow(TABLE_NAME, null, values)
+            Log.e("DBHelper", _success.toString())
+            success = (_success != 0L) // where _success is the long value
+        } catch (e: Exception)
+        {
+            Log.e("DBHelper", e.message.toString())
+        }
+        finally {
+            db.close()
+            return success }
     }
+
+
+//    fun addTask(task : TaskListModel): Boolean{
+//        val db = this.writableDatabase
+//        val values = ContentValues()
+//        values.put(TASK_NAME, task.name)
+//        values.put(TASK_DETAILS, task.details)
+//        var success : Boolean = false
+//        try {
+//            val _succes = db.insertOrThrow(TABLE_NAME, null, values)
+//            Log.e("DBHelper", _succes.toString())
+//            val b = l !== 0 // where l is the long value
+//
+//            success = _succes as Boolean
+//
+//        } catch (e: Exception) {
+//            Log.e("DBHelper", e.message.toString())
+//        } finally {
+//            db.close()
+//            return success
+//        }
+//    }
 
     fun getTask(_id: Int) : TaskListModel{
         val tasks = TaskListModel()
         val db = writableDatabase
-        val selectQuery = "SELECT *FROM $TABLE_NAME WHERE $ID = $_id"
+        val selectQuery = "SELECT * FROM $TABLE_NAME WHERE $ID = $_id"
         val cursor = db.rawQuery(selectQuery, null)
         try {
             cursor?.moveToFirst()
